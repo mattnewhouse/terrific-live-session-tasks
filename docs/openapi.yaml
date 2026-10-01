@@ -1,0 +1,148 @@
+openapi: 3.0.3
+info:
+  title: Live Session Setup Tasks API
+  version: 0.1.0
+  description: |
+    POC API for managing setup tasks during live commerce session preparation.
+    No authentication (internal POC). All responses are JSON.
+    Success bodies are wrapped as `{ "data": ... }`; errors as `{ "error": { code, message, details? } }`.
+servers:
+  - url: http://localhost:3001
+paths:
+  /api/health:
+    get:
+      summary: Liveness check
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+  /api/tasks:
+    get:
+      summary: List all tasks (creation order)
+      parameters:
+        - name: completed
+          in: query
+          required: false
+          description: Filter by completion status
+          schema: { type: string, enum: ['true', 'false'] }
+      responses:
+        '200':
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+    post:
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTask' }
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the new task
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /api/tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      summary: Get one task
+      responses:
+        '200':
+          description: The task
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      summary: Update title and/or completion status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTask' }
+      responses:
+        '200':
+          description: Updated task
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete a task
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  schemas:
+    Task:
+      type: object
+      required: [id, title, completed, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        completed: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TaskEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/Task' }
+    CreateTask:
+      type: object
+      required: [title]
+      additionalProperties: false
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200, description: Trimmed server-side }
+    UpdateTask:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        completed: { type: boolean }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [VALIDATION_ERROR, INVALID_JSON, TASK_NOT_FOUND, NOT_FOUND, INTERNAL_ERROR]
+            message: { type: string }
+            details: {}
+  responses:
+    ValidationError:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Task not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
