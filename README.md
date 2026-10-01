@@ -47,7 +47,7 @@ This serves the API **and** the built UI from one process at http://localhost:30
 
 | Env var                  | Default            | Purpose                                         |
 | ------------------------ | ------------------ | ----------------------------------------------- |
-| `PORT`                   | `3001`             | API port                                        |
+| `PORT`                   | `3001`             | Port for `npm start`. `npm run dev` always uses 3001, the proxy target. |
 | `DATA_FILE`              | `./data/tasks.json` | Where tasks are persisted                       |
 | `API_URL` (client dev)   | `http://localhost:3001` | Backend target for the Vite proxy          |
 | `VITE_API_URL` (client build) | empty (same origin) | Absolute API origin, if the UI is hosted separately |
